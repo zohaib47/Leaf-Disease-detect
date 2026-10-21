@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PotatoScan | AI Potato Leaf Disease Detection</title>
+<style>
+  :root{
+    --bg:#f5f8f6; --card:#ffffff; --ink:#10231a; --muted:#5f7468; --line:#e1e9e4;
+    --brand:#16a34a; --brand-d:#0f7a36; --brand-soft:#e8f6ee;
+    --ok:#16a34a; --warn:#d97706; --bad:#dc2626;
+    --shadow:0 1px 2px rgba(16,35,26,.05),0 10px 30px rgba(16,35,26,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:"Inter","Segoe UI",system-ui,-apple-system,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1160px;margin:0 auto;padding:0 24px}
+
+  /* NAVBAR */
+  header{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.9);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:68px}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;letter-spacing:-.3px}
+  .logo i{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#22c55e,#0f7a36);display:grid;place-items:center;font-style:normal;font-size:19px}
+  .links{display:flex;align-items:center;gap:28px;font-size:14.5px;font-weight:500;color:var(--muted)}
+  .links a:hover{color:var(--ink)}
+  .status{font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:999px;background:var(--brand-soft);color:var(--brand-d)}
+  .status.off{background:#fde8e8;color:var(--bad)}
+  @media(max-width:760px){.links a{display:none}}
+
+  /* HERO */
+  .hero{padding:64px 0 30px;text-align:center;background:
+        radial-gradient(700px 300px at 50% -10%,rgba(34,197,94,.14),transparent)}
+  .eyebrow{display:inline-block;font-size:12.5px;font-weight:700;color:var(--brand-d);background:var(--brand-soft);padding:6px 14px;border-radius:999px;letter-spacing:.4px}
+  .hero h1{font-size:clamp(30px,5vw,52px);font-weight:800;letter-spacing:-1.2px;line-height:1.1;margin:18px auto 0;max-width:780px}
+  .hero h1 span{color:var(--brand)}
+  .hero p{color:var(--muted);font-size:17px;max-width:620px;margin:16px auto 0}
+  .stats{display:flex;justify-content:center;gap:42px;flex-wrap:wrap;margin-top:34px}
+  .stat b{display:block;font-size:26px;font-weight:800}
+  .stat span{font-size:13px;color:var(--muted)}
+
+  /* ANALYZER */
+  .analyzer{padding:30px 0 20px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:26px;box-shadow:var(--shadow)}
+  .card h2{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700;margin-bottom:18px}
+  .num{width:26px;height:26px;border-radius:50%;background:var(--brand);color:#fff;font-size:13px;font-weight:800;display:grid;place-items:center}
+
+  #drop{border:2px dashed #b9d4c4;border-radius:14px;padding:42px 16px;text-align:center;cursor:pointer;background:#fafdfb;transition:.2s}
+  #drop:hover,#drop.drag{border-color:var(--brand);background:var(--brand-soft)}
+  #drop .ico{width:58px;height:58px;margin:0 auto 12px;border-radius:50%;background:var(--brand-soft);display:grid;place-items:center;font-size:26px}
+  #drop b{display:block;font-size:16px}
+  #drop small{color:var(--muted)}
+  .stage{display:none;position:relative;border-radius:14px;overflow:hidden;background:#0d1a13}
+  .stage img{display:block;width:100%;max-height:340px;object-fit:contain}
+  .scan{display:none;position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,transparent,#4ade80,transparent);box-shadow:0 0 20px #4ade80;animation:scan 1.4s ease-in-out infinite}
+  @keyframes scan{0%{top:0}50%{top:calc(100% - 3px)}100%{top:0}}
+  .fileinfo{display:none;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:10px}
+  .btns{display:flex;gap:10px;margin-top:18px}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:11px;padding:13px 20px;font-size:15px;font-weight:700;transition:.15s}
+  #btn{flex:1;background:var(--brand);color:#fff}
+  #btn:hover:not(:disabled){background:var(--brand-d);box-shadow:0 8px 20px rgba(22,163,74,.3);transform:translateY(-1px)}
+  #btn:disabled{background:#cfe0d6;color:#fff;cursor:not-allowed}
+  #reset{background:#fff;border:1px solid var(--line);color:var(--muted)}
+  #reset:hover{border-color:var(--brand);color:var(--ink)}
+  .err{display:none;margin-top:14px;padding:11px 14px;border-radius:10px;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;font-size:14px}
+  .tips{margin-top:20px;padding:14px 16px;border-radius:12px;background:#f6faf7;border:1px solid var(--line);font-size:13.5px;color:var(--muted);line-height:1.8}
+  .tips b{color:var(--ink)}
+
+  /* RESULT */
+  .empty{text-align:center;color:var(--muted);padding:70px 10px}
+  .empty .big{font-size:48px;margin-bottom:10px}
+  #result{display:none}
+  .head{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+  .ring{position:relative;width:132px;height:132px;flex:none}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .bgc{stroke:#e8efea}
+  .ring .fg{transition:stroke-dashoffset 1s ease}
+  .ring .val{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+  .ring .val b{font-size:27px;display:block;line-height:1}
+  .ring .val small{font-size:11px;color:var(--muted)}
+  .badge{display:inline-block;font-size:12px;font-weight:700;padding:5px 12px;border-radius:999px;margin-bottom:8px}
+  .b-ok{background:#dcfce7;color:#15803d}
+  .b-warn{background:#fef3c7;color:#b45309}
+  .b-bad{background:#fee2e2;color:#b91c1c}
+  #topLabel{font-size:26px;font-weight:800;letter-spacing:-.4px;line-height:1.15}
+  #sci{font-size:13.5px;color:var(--muted);font-style:italic;margin-top:3px}
+  .sec{margin-top:24px}
+  .sec h3{font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+  .row{margin-bottom:13px;font-size:14px}
+  .row .name{display:flex;justify-content:space-between;margin-bottom:5px}
+  .bar{height:9px;border-radius:6px;background:#edf2ee;overflow:hidden}
+  .fill{height:100%;width:0;border-radius:6px;transition:width .9s ease}
+  .advice{background:#f8fbf9;border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:12px;padding:14px 18px;font-size:14.5px}
+  .advice ul{margin-left:18px}
+  .advice li{margin:5px 0}
+  .disc{margin-top:16px;font-size:12.5px;color:var(--muted)}
+
+  /* HOW IT WORKS */
+  .how{padding:50px 0 20px}
+  .sechead{text-align:center;margin-bottom:28px}
+  .sechead h2{font-size:30px;font-weight:800;letter-spacing:-.6px}
+  .sechead p{color:var(--muted);margin-top:6px}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  @media(max-width:800px){.steps{grid-template-columns:1fr}}
+  .st{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px;text-align:center;box-shadow:var(--shadow)}
+  .st .i{width:52px;height:52px;margin:0 auto 12px;border-radius:14px;background:var(--brand-soft);display:grid;place-items:center;font-size:24px}
+  .st b{display:block;font-size:16px;margin-bottom:4px}
+  .st span{font-size:14px;color:var(--muted)}
+
+  /* CLASSES */
+  .classes{padding:30px 0}
+  .cgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  @media(max-width:800px){.cgrid{grid-template-columns:1fr}}
+  .cc{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;border-top:4px solid var(--c);box-shadow:var(--shadow)}
+  .cc b{font-size:17px}
+  .cc em{display:block;font-size:13px;color:var(--muted);margin:2px 0 8px}
+  .cc p{font-size:14px;color:var(--muted)}
+
+  /* HISTORY */
+  .history{padding:30px 0 50px}
+  .hlist{display:flex;gap:14px;overflow-x:auto;padding-bottom:6px}
+  .hitem{flex:none;width:160px;background:#fafdfb;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .hitem img{width:100%;height:96px;object-fit:cover;display:block}
+  .hitem div{padding:9px 11px;font-size:12px;color:var(--muted)}
+  .hitem b{display:block;font-size:13px;margin-bottom:2px}
+  .hempty{color:var(--muted);font-size:14px}
+
+  footer{background:#0f2218;color:#9bb5a6;padding:34px 0;font-size:13.5px}
+  footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  footer b{color:#fff}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a href="#" class="logo"><i>🥔</i> PotatoScan</a>
+    <div class="links">
+      <a href="#analyzer">Analyzer</a>
+      <a href="#how">How it works</a>
+      <a href="#classes">Diseases</a>
+      <span class="status" id="status">● Connecting...</span>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <span class="eyebrow">AI-POWERED CROP HEALTH</span>
+    <h1>Detect potato leaf diseases <span>in seconds</span></h1>
+    <p>Upload a photo of a potato leaf and our Vision Transformer model will identify Early Blight, Late Blight or a healthy leaf, with clear next steps.</p>
+    <div class="stats">
+      <div class="stat"><b>3</b><span>Classes detected</span></div>
+      <div class="stat"><b>ViT</b><span>Transformer model</span></div>
+      <div class="stat"><b>&lt; 2s</b><span>Typical analysis time</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="analyzer" id="analyzer">
+  <div class="wrap grid">
+
+    <div class="card">
+      <h2><span class="num">1</span> Upload leaf image</h2>
+
+      <div id="drop">
+        <div class="ico">📷</div>
+        <b>Drag &amp; drop your image here</b>
+        <small>or click to browse &bull; JPG, PNG up to 10 MB</small>
+      </div>
+      <input type="file" id="file" accept="image/*" hidden>
+
+      <div class="stage" id="stage"><img id="preview" alt="Leaf preview"><div class="scan" id="scan"></div></div>
+      <div class="fileinfo" id="fileinfo"><span id="fname"></span><span id="fsize"></span></div>
+
+      <div class="btns">
+        <button id="btn" disabled>🔍 Analyze Leaf</button>
+        <button id="reset">Reset</button>
+      </div>
+      <div class="err" id="err"></div>
+
+      <div class="tips">
+        <b>Tips for accurate results</b><br>
+        &bull; Photograph a single leaf in natural daylight<br>
+        &bull; Keep the leaf in focus and centered<br>
+        &bull; Avoid heavy shadows, filters or blur
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="num">2</span> Diagnosis report</h2>
+
+      <div class="empty" id="empty">
+        <div class="big">🌿</div>
+        Your report will appear here.<br>Upload an image and click <b>Analyze Leaf</b>.
+      </div>
+
+      <div id="result">
+        <div class="head">
+          <div class="ring">
+            <svg width="132" height="132" viewBox="0 0 132 132">
+              <circle class="bgc" cx="66" cy="66" r="56" fill="none" stroke-width="11"/>
+              <circle class="fg" id="ringFg" cx="66" cy="66" r="56" fill="none" stroke-width="11" stroke-linecap="round"
+                      stroke-dasharray="351.9" stroke-dashoffset="351.9"/>
+            </svg>
+            <div class="val"><div><b id="confNum">0%</b><small>confidence</small></div></div>
+          </div>
+          <div>
+            <span class="badge" id="badge"></span>
+            <div id="topLabel"></div>
+            <div id="sci"></div>
+          </div>
+        </div>
+
+        <div class="sec"><h3>Class probabilities</h3><div id="bars"></div></div>
+        <div class="sec"><h3>Recommended action</h3><div class="advice" id="advice"></div></div>
+
+        <p class="disc">⚠️ This is an AI-based estimate, not a substitute for an agronomist's diagnosis. For serious outbreaks, consult a local agriculture expert.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="how" id="how">
+  <div class="wrap">
+    <div class="sechead"><h2>How it works</h2><p>Three simple steps from photo to diagnosis</p></div>
+    <div class="steps">
+      <div class="st"><div class="i">📤</div><b>1. Upload</b><span>Add a clear photo of a potato leaf from your phone or computer.</span></div>
+      <div class="st"><div class="i">🧠</div><b>2. Analyze</b><span>The Vision Transformer model examines the leaf patterns and colors.</span></div>
+      <div class="st"><div class="i">📋</div><b>3. Act</b><span>Get the diagnosis, confidence score and recommended treatment steps.</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="classes" id="classes">
+  <div class="wrap">
+    <div class="sechead"><h2>Detectable conditions</h2><p>What the model has been trained to recognize</p></div>
+    <div class="cgrid">
+      <div class="cc" style="--c:#16a34a"><b>Healthy</b><em>No disease</em><p>Uniform green leaf without lesions, spots or discoloration.</p></div>
+      <div class="cc" style="--c:#d97706"><b>Early Blight</b><em>Alternaria solani</em><p>Dark brown spots with concentric rings, usually on older lower leaves.</p></div>
+      <div class="cc" style="--c:#dc2626"><b>Late Blight</b><em>Phytophthora infestans</em><p>Water-soaked dark patches that spread rapidly in cool, humid weather.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="history">
+  <div class="wrap">
+    <div class="card">
+      <h2>Recent predictions</h2>
+      <div class="hlist" id="hlist"><div class="hempty" id="hempty">No predictions yet in this session.</div></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div><b>PotatoScan</b> &bull; AI Potato Leaf Disease Detection</div>
+    <div>Powered by Vision Transformer (ViT) &bull; Flask API</div>
+  </div>
+</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const drop=$("drop"), fileInput=$("file"), preview=$("preview"), stage=$("stage"), scan=$("scan"),
+      btn=$("btn"), err=$("err"), result=$("result"), empty=$("empty");
+let selectedFile = null;
+
+const INFO = {
+  healthy:{title:"Healthy Leaf", sci:"No disease detected", cls:"ok", badge:"✔ Healthy", color:"#16a34a",
+    tips:["The leaf looks healthy. No treatment is needed.","Continue weekly monitoring of the crop.","Maintain balanced watering and nutrition."]},
+  early:{title:"Early Blight", sci:"Alternaria solani", cls:"warn", badge:"⚠ Moderate risk", color:"#d97706",
+    tips:["Remove and destroy affected lower leaves.","Apply a suitable fungicide (e.g. mancozeb or chlorothalonil) as per the label.","Avoid overhead watering; water at the base in the morning.","Rotate crops and avoid planting potato or tomato in the same plot next season."]},
+  late:{title:"Late Blight", sci:"Phytophthora infestans", cls:"bad", badge:"⛔ High risk", color:"#dc2626",
+    tips:["Act quickly: this disease spreads very fast in cool, humid weather.","Remove and destroy infected plants; do not compost them.","Apply a recommended systemic fungicide immediately and repeat as advised.","Improve air circulation and avoid wet foliage.","Inspect neighbouring plants and stored tubers."]}
+};
+
+function keyOf(label){
+  const l = label.toLowerCase();
+  if(l.includes("healthy")) return "healthy";
+  if(l.includes("early")) return "early";
+  return "late";
+}
+function pretty(n){ return n.replace(/___/g," - ").replace(/_/g," "); }
+function fmtSize(b){ return b>1048576 ? (b/1048576).toFixed(2)+" MB" : (b/1024).toFixed(1)+" KB"; }
+function showErr(m){ err.textContent=m; err.style.display="block"; }
+
+fetch("/health").then(r=>r.json()).then(d=>{
+  $("status").textContent = "● Model online (" + d.device + ")";
+}).catch(()=>{ $("status").textContent="● Offline"; $("status").classList.add("off"); });
+
+function setFile(f){
+  if(!f || !f.type.startsWith("image/")){ showErr("Please select a valid image file."); return; }
+  if(f.size > 10*1024*1024){ showErr("Image is larger than 10 MB."); return; }
+  selectedFile = f;
+  preview.src = URL.createObjectURL(f);
+  stage.style.display="block"; drop.style.display="none";
+  $("fname").textContent = f.name.length>30 ? f.name.slice(0,27)+"..." : f.name;
+  $("fsize").textContent = fmtSize(f.size);
+  $("fileinfo").style.display="flex";
+  btn.disabled=false; err.style.display="none";
+  result.style.display="none"; empty.style.display="block";
+}
+
+drop.onclick = () => fileInput.click();
+fileInput.onchange = e => setFile(e.target.files[0]);
+drop.ondragover = e => { e.preventDefault(); drop.classList.add("drag"); };
+drop.ondragleave = () => drop.classList.remove("drag");
+drop.ondrop = e => { e.preventDefault(); drop.classList.remove("drag"); setFile(e.dataTransfer.files[0]); };
+
+btn.onclick = async () => {
+  if(!selectedFile) return;
+  const fd = new FormData(); fd.append("image", selectedFile);
+  btn.disabled=true; btn.textContent="Analyzing..."; scan.style.display="block"; err.style.display="none";
+  try{
+    const res = await fetch("/predict",{method:"POST",body:fd});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || "Server error");
+    render(data);
+    addHistory(data);
+  }catch(e){
+    showErr("Error: " + e.message);
+  }finally{
+    scan.style.display="none"; btn.disabled=false; btn.textContent="🔍 Analyze Leaf";
+  }
+};
+
+function render(d){
+  const info = INFO[keyOf(d.prediction)];
+  empty.style.display="none"; result.style.display="block";
+
+  $("topLabel").textContent = info.title;
+  $("sci").textContent = info.sci;
+  const b = $("badge"); b.textContent = info.badge; b.className = "badge b-" + info.cls;
+
+  const ring = $("ringFg"), C = 351.9;
+  ring.style.stroke = info.color;
+  ring.style.strokeDashoffset = C;
+  setTimeout(()=> ring.style.strokeDashoffset = C * (1 - d.confidence/100), 50);
+  $("confNum").textContent = d.confidence + "%";
+
+  const bars = $("bars"); bars.innerHTML = "";
+  d.all.forEach(r=>{
+    const c = INFO[keyOf(r.label)].color;
+    bars.innerHTML += `<div class="row"><div class="name"><span>${pretty(r.label)}</span><b>${r.probability}%</b></div>
+      <div class="bar"><div class="fill" style="background:${c}" data-w="${r.probability}"></div></div></div>`;
+  });
+  setTimeout(()=>document.querySelectorAll(".fill").forEach(el=>el.style.width=el.dataset.w+"%"),50);
+
+  $("advice").style.borderLeftColor = info.color;
+  $("advice").innerHTML = "<ul>" + info.tips.map(t=>`<li>${t}</li>`).join("") + "</ul>";
+  result.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+
+function addHistory(d){
+  $("hempty").style.display="none";
+  const info = INFO[keyOf(d.prediction)];
+  const div = document.createElement("div");
+  div.className="hitem";
+  div.innerHTML = `<img src="${preview.src}"><div><b style="color:${info.color}">${info.title}</b>${d.confidence}% confidence</div>`;
+  $("hlist").prepend(div);
+  while($("hlist").querySelectorAll(".hitem").length > 8) $("hlist").lastElementChild.remove();
+}
+
+$("reset").onclick = () => {
+  selectedFile=null; fileInput.value="";
+  stage.style.display="none"; drop.style.display="block"; $("fileinfo").style.display="none";
+  result.style.display="none"; empty.style.display="block";
+  err.style.display="none"; btn.disabled=true;
+};
+</script>
+</body>
+</html>
